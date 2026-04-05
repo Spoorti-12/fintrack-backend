@@ -1,2 +1,2 @@
-FROM grafana/grafana:latest
-COPY provisioning /etc/grafana/provisioning
+FROM prom/prometheus:latest
+COPY prometheus.yml /etc/prometheus/prometheus.yml
