@@ -1,7 +1,6 @@
-target/
-*.log
-logs/
-.idea/
-.vscode/
-*.iml
+node_modules/
+dist/
+.git/
 .DS_Store
+*.log
+.env*

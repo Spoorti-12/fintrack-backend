@@ -1,15 +1,13 @@
-# Stage 1: Build
-FROM maven:3.9.6-eclipse-temurin-21 AS builder
+# Stage 1: Build React app
+FROM node:20-alpine AS builder
 WORKDIR /app
-COPY pom.xml .
-RUN mvn dependency:go-offline -q
-COPY src ./src
-RUN mvn package -DskipTests -q
+COPY package.json ./
+RUN npm install
+COPY . .
+RUN npm run build
 
-# Stage 2: Run
-FROM eclipse-temurin:21-jre-alpine
-WORKDIR /app
-COPY --from=builder /app/target/finance-backend-1.0.0.jar app.jar
-RUN mkdir -p logs
-EXPOSE 8080
-ENTRYPOINT ["java", "-jar", "app.jar"]
+# Stage 2: Serve with nginx
+FROM nginx:alpine
+COPY --from=builder /app/dist /usr/share/nginx/html
+COPY nginx.conf /etc/nginx/conf.d/default.conf
+EXPOSE 80
