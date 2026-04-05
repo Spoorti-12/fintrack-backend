@@ -1,0 +1,102 @@
+networks:
+  finance-network:
+    driver: bridge
+
+volumes:
+  mysql-data:
+  grafana-data:
+
+services:
+
+  mysql:
+    image: mysql:8.0
+    container_name: finance-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: finance_db
+      MYSQL_USER: finance
+      MYSQL_PASSWORD: finance123
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+    networks:
+      - finance-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "finance", "-pfinance123"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  app:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: finance-app
+    restart: unless-stopped
+    environment:
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_NAME: finance_db
+      DB_USER: finance
+      DB_PASSWORD: finance123
+      JWT_SECRET: 3d7e9f2a1b8c4d6e0f5a3b7c9d2e4f6a8b0c1d3e5f7a9b1c3d5e7f9a0b2c4d6
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - finance-network
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/actuator/health | grep -q 'UP'"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
+
+  nginx:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: finance-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    depends_on:
+      app:
+        condition: service_healthy
+    networks:
+      - finance-network
+
+  prometheus:
+    build:
+      context: ./infra/prometheus
+      dockerfile: Dockerfile
+    container_name: finance-prometheus
+    restart: unless-stopped
+    ports:
+      - "9090:9090"
+    networks:
+      - finance-network
+    depends_on:
+      - app
+
+  grafana:
+    build:
+      context: ./infra/grafana
+      dockerfile: Dockerfile
+    container_name: finance-grafana
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    volumes:
+      - grafana-data:/var/lib/grafana
+    networks:
+      - finance-network
+    depends_on:
+      - prometheus

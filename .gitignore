@@ -1,0 +1,29 @@
+# Database dumps
+dumps/
+
+# Backend
+backend/target/
+backend/*.log
+backend/logs/
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
+frontend/.env*
+
+# Environment & secrets
+.env
+.env.*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# Logs
+*.log
+logs/
